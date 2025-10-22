@@ -120,7 +120,7 @@ public slots:
   void guiUpdate();
   void setXIT(int n);
   void qsy(int hzDelta);
-  void drifted(int prev, int cur);
+  void driftChanged(qint64 new_drift_ms);
   void setFreqOffsetForRestore(int freq, bool shouldRestore);
   bool tryRestoreFreqOffset();
   void changeFreq(int);

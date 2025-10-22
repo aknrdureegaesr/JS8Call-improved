@@ -104,7 +104,7 @@ namespace
 
   int ms_minute_error ()
   {
-    auto const now    = DriftingDateTime::currentDateTime();
+    auto const now    = DriftingDateTime::currentDateTimeLocal();
     auto const time   = now.time();
     auto const second = time.second();
 
@@ -649,7 +649,9 @@ MainWindow::MainWindow(QString  const & program_info,
 
   connect(m_wideGraph.data(), &WideGraph::changeFreq, this, &MainWindow::changeFreq);
   connect(m_wideGraph.data(), &WideGraph::qsy,        this, &MainWindow::qsy);
-  connect(m_wideGraph.data(), &WideGraph::drifted,    this, &MainWindow::drifted);
+  connect(&DriftingDateTimeSingleton::getSingleton(), &DriftingDateTimeSingleton::driftChanged, this, &MainWindow::driftChanged);
+  connect(&DriftingDateTimeSingleton::getSingleton(), &DriftingDateTimeSingleton::driftChanged, m_wideGraph.data(), &WideGraph::driftChanged);
+  connect(m_wideGraph.data(), &WideGraph::want_new_drift, &DriftingDateTimeSingleton::getSingleton(), &DriftingDateTimeSingleton::setDrift);
 
   decodeBusy(false);
 
@@ -4517,7 +4519,7 @@ void MainWindow::guiUpdate()
   if(m_tune) m_bTxTime=true;                 // "Tune" and tones take precedence
 
   if(m_transmitting or m_auto or m_tune) {
-    m_dateTimeLastTX = DriftingDateTime::currentDateTime ();
+    m_dateTimeLastTX = DriftingDateTime::currentDateTimeLocal ();
 
 // Don't transmit another mode in the 30 m WSPR sub-band
     Frequency onAirFreq = m_freqNominal + freq();
@@ -7542,9 +7544,10 @@ MainWindow::qsy(int const hzDelta)
   displayActivity(true);
 }
 
-void MainWindow::drifted(int /*prev*/, int /*cur*/){
+void MainWindow::driftChanged(qint64 /*new_drift_ms*/){
     // here we reset the buffer position without clearing the buffer
     // this makes the detected emit the correct k when drifting time
+    qCDebug(mainwindow_js8) << "Processing drift change.";
     m_detector->resetBufferPosition();
 }
 
@@ -8259,8 +8262,8 @@ void MainWindow::resetTimeDeltaAverage(){
     m_driftMsMMA_N = 0;
 }
 
-void MainWindow::setDrift(int n){
-    m_wideGraph->setDrift(n);
+void MainWindow::setDrift(int n) {
+    DriftingDateTime::setDrift(n);
 }
 
 void
