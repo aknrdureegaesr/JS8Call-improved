@@ -31,7 +31,15 @@ Modulator::start(double        const frequency,
 {
   Q_ASSERT (stream);
 
-  if (m_state != State::Idle) stop();
+  if (m_state != State::Idle) {
+      qCDebug(modulator_js8)
+          << "Modulator does not find itself in state idle, but"
+          << (m_state == State::Active ? "Active" :
+              m_state == State::Synchronizing ? "Synchronizing" :
+              m_state == State::Idle ? "Idle" : "??What??")
+          << "so calling stop()";
+      stop();
+  }
 
   m_quickClose      = false;
   m_audioFrequency  = frequency;
@@ -73,7 +81,7 @@ Modulator::start(double        const frequency,
         m_silentFrames = (startDelayMS + additionalMSNeededForTxDelay) * FRAME_RATE / MS_PER_SEC;
     } else if (startDelayMS > periodOffsetMS) {
         qCDebug(modulator_js8) << "Starting" << periodOffsetMS
-                               << "ms late into transmission, removing some of the"
+                               << "ms late into transmission, skipping some of the"
                                << startDelayMS << "ms start delay";
         m_silentFrames = (startDelayMS - periodOffsetMS) * FRAME_RATE / MS_PER_SEC;
     } else {
@@ -81,13 +89,18 @@ Modulator::start(double        const frequency,
                                  << "ms late into transmission, cutting away initial symbol(s).";
         m_ic = (periodOffsetMS - startDelayMS) * FRAME_RATE / MS_PER_SEC;
     }
+  } else {
+      qCDebug(modulator_js8) << "Modulator finds it is tuning.";
   }
 
   initialize(QIODevice::ReadOnly, channel);
 
   m_state = 0 < m_silentFrames ? State::Synchronizing : State::Active;
-
   m_stream = stream;
+  qCDebug(modulator_js8) << "Modulator::start state is"
+                         << (m_state == State::Active ? "Active" :
+                             m_state == State::Synchronizing ? "Synchronizing" :
+                             m_state == State::Idle ? "Idle" : "??What??");
 
   if (m_stream)
   {
